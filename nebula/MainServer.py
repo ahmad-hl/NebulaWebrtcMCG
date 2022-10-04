@@ -28,8 +28,8 @@ if __name__ == '__main__':
     mtp_logger = logging.getLogger('MTP_Logger')
     hdlr_5 = logging.FileHandler(mtp_log_url)
     mtp_logger.setLevel(logging.INFO)
-    mtp_logger.addHandler(hdlr_1)
-    mtp_logger.info("station,frame_no,ts")
+    mtp_logger.addHandler(hdlr_5)
+    mtp_logger.info("station,frame_no,ts,psnr")
 
     # configure overhead logger for throughput/goodput
     overhead_log_url = os.path.join(Logs_Dir, "overhead.sr.log")

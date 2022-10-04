@@ -41,8 +41,8 @@ class RLNCencodeOffProcess(Process):
         if frame_no % 10 == 0:
 
             # Tune source rate
-            ruleRTT = max(currRTT, 0.4)
-            ruleRTT = 1- min(ruleRTT, 0.7)
+            ruleRTT = max(currRTT, 0.5)
+            ruleRTT = 1- min(ruleRTT, 0.8)
 
             print("currRTT = {}, ruleRTT = {}".format(currRTT, ruleRTT))
             for ind in range(readers_len):
@@ -157,7 +157,7 @@ class RLNCencodeOffProcess(Process):
             # process rlnc encode, frame number, time (ms)
             self.logger.info("rlncenc, {}, {}".format(frame_no, req_time))
             # station, frame no, timestamp
-            self.MTPlogger.info("send, {}, {}".format(frame_no, time_end ))
+            self.MTPlogger.info("server, {}, {}".format(frame_no, time_end ))
 
             seconds = math.ceil(time.mktime(datetime.today().timetuple()))
             if sourceRate:
@@ -219,17 +219,12 @@ class MTPReceiverThread(threading.Thread):
         print('Established server MTP socket {} , {} ..'.format(args.server_ip, args.server_mtp_port))
 
     def run(self):
-        mtp_list = []
-
         while True:
             # Receive an frame MTP latency response packet
             obj, address = self.mtp_socket.recvfrom(1024)
             mtpPacket = pickle.loads(obj)
 
             # compute the difference as mtp
-            mtp = time.time() - mtpPacket.sent_ts
-            mtp_list.append(mtp)
-            seconds = math.ceil(time.mktime(datetime.today().timetuple()))
             if self.MTPlogger:
-                self.MTPlogger.info("{}, {}, {}, {}".format(seconds, mtpPacket.frame_no, mtp, mtpPacket.psnr))
-            print("motion-to-photon latency {} and psnr {} of frame {}".format(mtp * 1000, mtpPacket.psnr, mtpPacket.frame_no))
+                self.MTPlogger.info("{}, {}, {}, {}".format('client', mtpPacket.frame_no, mtpPacket.sent_ts, mtpPacket.psnr))
+            print("sent time {} and psnr {} of frame {}".format(mtpPacket.sent_ts, mtpPacket.psnr, mtpPacket.frame_no))
