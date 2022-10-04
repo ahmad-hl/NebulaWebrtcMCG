@@ -1,9 +1,7 @@
 import cv2
-import numpy as np
 from util.ivfreader import IVFReader
 from statistics import mean
-# from BuffOccup_UDP.vp8enc_packet import VP8EncPacket
-import os, subprocess, time
+import os, subprocess, sys
 
 
 currDir = os.path.dirname(os.path.realpath(__file__))
@@ -68,6 +66,12 @@ def get_bitrates():
 
     return bitrates
 
+def __send(self, socket, message, address):
+    # Convert str message to bytes on Python 3+
+    if sys.version_info[0] > 2 and isinstance(message, str):
+        message = bytes(message, 'utf-8')
+
+    socket.sendto(message, address)
 
 def average_bw_list(bw_list,  bw_value):
     bw_list.append(bw_value)
@@ -77,42 +81,3 @@ def average_bw_list(bw_list,  bw_value):
 
     return mean(bw_list)
 
-#
-# # Divide vp8 encoded frame and send as packets to the client
-# def divide_send_frame(snderSock, frame, frame_no, mss=1200):
-#     sequence_number = 0
-#     frame_len = len(frame)
-#     pkt_idx = 0
-#
-#     while pkt_idx < frame_len:
-#         if pkt_idx + mss > frame_len:
-#             frame_slice = np.array(frame[pkt_idx:], dtype=np.uint8)
-#         else:
-#             frame_slice = np.array(frame[pkt_idx:pkt_idx + mss], dtype=np.uint8)
-#
-#         pkt = VP8EncPacket(sequence_number=sequence_number,frame_no=frame_no, frame_len=frame_len, data=frame_slice)
-#         snderSock.sendVP8encData(pkt)
-#         pkt_idx += mss
-#         sequence_number = sequence_number + 1
-#
-#     return sequence_number, frame_len
-#
-#
-# # Divide vp8 encoded frame and send as packets to the client
-# def divide_send_frame(snderSock, frame, frame_no, event, mss=1200):
-#     sequence_number = 0
-#     frame_len = len(frame)
-#     pkt_idx = 0
-#
-#     while pkt_idx < frame_len:
-#         if pkt_idx + mss > frame_len:
-#             frame_slice = np.array(frame[pkt_idx:], dtype=np.uint8)
-#         else:
-#             frame_slice = np.array(frame[pkt_idx:pkt_idx + mss], dtype=np.uint8)
-#
-#         pkt = VP8EncPacket(sequence_number=sequence_number,frame_no=frame_no, frame_len=frame_len, event=event, data=frame_slice)
-#         snderSock.sendVP8encData(pkt)
-#         pkt_idx += mss
-#         sequence_number = sequence_number + 1
-#
-#     return sequence_number, frame_len

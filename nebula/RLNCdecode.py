@@ -172,7 +172,7 @@ class RLNCdecodeProcess(Process):
                 self.delete_lower_frames(received_frames, frame_packet_delays, gap)
 
                 if is_complete_frame:
-                    rlnc_vp8_data = RLNC2VP8DecData(frtpPacket.frame_no, data_out)
+                    rlnc_vp8_data = RLNC2VP8DecData(frtpPacket.frame_no, frtpPacket.timestamp, data_out)
                     obj = pickle.dumps(rlnc_vp8_data)
                     # DO NOT Refresh queue (to avoid distortion)
                     self.out_queue.put(obj)

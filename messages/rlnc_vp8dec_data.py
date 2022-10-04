@@ -1,7 +1,7 @@
 class RLNC2VP8DecData:
-    def __init__(self, frame_no, event, data_out):
+    def __init__(self, frame_no, frame_sent_ts, data_out):
         self.frame_no = frame_no
-        self.event = event
+        self.frame_sent_ts = frame_sent_ts
         self.data_out = data_out
 
     def __str__(self):

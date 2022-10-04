@@ -2,7 +2,6 @@ from multiprocessing import Manager
 from nebula import RLNCdecode, VP8decode, Display, PSNRcompute
 from RTTProbing import RTTProbingClient
 import logging, sys, signal, os
-from util import user_interaction
 
 if __name__ == '__main__':
     currDir = os.path.dirname(os.path.realpath(__file__))
@@ -81,15 +80,15 @@ if __name__ == '__main__':
     signal_raised = False
     def signal_handler(signal, frame):
         global signal_raised
-        print ('You pressed Ctrl+C - or killed me with -2')
+        print('You pressed Ctrl+C - or killed me with -2')
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
 
     # initiate & start processes
     manager = Manager()
-    rec_queue = manager.Queue(maxsize=10)
-    psnr_queue = manager.Queue(maxsize=100)
+    rec_queue = manager.Queue(maxsize=1)
+    psnr_queue = manager.Queue(maxsize=1)
 
     rlncdec = RLNCdecode.RLNCdecodeProcess(rec_queue, logger=perf_logger, latencylogger=latency_logger, bwlogger=bw_logger, ifbw_logger=ifbw_logger, plrlogger=plr_logger)
     print('*********************** Client & FEC Mode ********************************')
@@ -101,12 +100,8 @@ if __name__ == '__main__':
     vp8dec = VP8decode.VP8decodeProcess(rec_queue, psnr_queue, logger=perf_logger)
     vp8dec.start()
 
-    display = Display.DisplayProcess(psnr_queue)
+    display = Display.DisplayProcess(psnr_queue, logger=perf_logger)
     display.start()
-
-    # Support user to keyboad interaction
-    # user_key_it = user_interaction.UserKeyInteraction(event_logger=event_logger)
-    # user_key_it.user_key_interaction()
 
     #join processes
     rlncdec.join()
