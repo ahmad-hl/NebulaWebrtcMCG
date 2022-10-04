@@ -6,9 +6,7 @@ from util.receiverSock import ReceiverSock
 from messages.rlnc_vp8dec_data import RLNC2VP8DecData
 from messages.NPRpacket import NPRpacket
 import kodo
-import pickle, os, shutil
-import socket
-import logging
+import pickle, socket
 
 class RLNCdecodeProcess(Process):
     def __init__(self, out_queue, logger=None, latencylogger=None, bwlogger=None, ifbw_logger= None, plrlogger=None):

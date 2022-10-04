@@ -4,6 +4,7 @@ import os, csv,shutil
 from util import PreTxUtility
 from util.initializer import initialize_setting
 from messages.MTPpacket import MTPpacket
+from messages.vp8dec_display_data import VP8Dec2DisplayData
 
 class DisplayProcess(Process):
     def __init__(self,in_queue, logger=None, fpslogger=None):
@@ -19,26 +20,6 @@ class DisplayProcess(Process):
             self.logger = logger
         if fpslogger:
             self.fpslogger = fpslogger
-
-
-    def computePSNR(self, frame_no, compressed_frame, curr_frame_ptr, vp8_disp_data =None):
-
-        # Loading images (original image and compressed image)
-        while curr_frame_ptr <= frame_no:
-            # print("frame_no {}, curr frame ptr {}".format(frame_no, curr_frame_ptr))
-            success, original_1920_1080 = self.reader_1920_1080.read()
-            curr_frame_ptr += 1
-
-        if success:
-            original = original_1920_1080
-            framepsnr = cv2.PSNR(original, compressed_frame)
-            cv2.imshow('original', original)
-            cv2.imshow('compressed', compressed_frame)
-            cv2.waitKey(1)
-        else:
-            framepsnr = 1
-
-        return framepsnr
 
 
     def __send(self, socket, message, address):
@@ -70,15 +51,14 @@ class DisplayProcess(Process):
 
             itemstart = time.time()
 
-            framepsnr = self.computePSNR(vp8_disp_data.frame_no, vp8_disp_data.frame, curr_frame_ptr, vp8_disp_data)
-            print("PSNR of frame {}: {}".format(vp8_disp_data.frame_no, framepsnr))
-
+            # framepsnr = self.computePSNR(vp8_disp_data.frame_no, vp8_disp_data.frame, curr_frame_ptr, vp8_disp_data)
+            cv2.imshow('compressed', vp8_disp_data.frame)
+            cv2.waitKey(1)
             # Send an MTP latency, PSNR response packet upon frame playback at client
-            mtpPacket = MTPpacket(vp8_disp_data.frame_no, vp8_disp_data.frame_sent_ts, framepsnr)
+            mtpPacket = MTPpacket(vp8_disp_data.frame_no, vp8_disp_data.frame_sent_ts, 1)
             obj = pickle.dumps(mtpPacket)
             self.__send(self.mtp_socket, obj, self.address)
 
-            curr_frame_ptr = vp8_disp_data.frame_no + 1
 
             req_time = (time.time() - itemstart) * 1000
             self.logger.info("display, {}, {}".format(vp8_disp_data.frame_no, req_time))

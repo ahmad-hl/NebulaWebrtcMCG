@@ -1,8 +1,7 @@
 from multiprocessing import Manager
-from nebula_wcapture import RLNCdecode, VP8decode
+from nebula_wcapture import RLNCdecode, VP8decode, Display
 from RTTProbing import RTTProbingClient
 import logging, sys, signal, os
-from util import user_interaction
 
 if __name__ == '__main__':
     CurrDir = os.path.dirname(os.path.realpath(__file__))
@@ -37,6 +36,16 @@ if __name__ == '__main__':
     bw_logger.setLevel(logging.INFO)
     bw_logger.addHandler(hdlr_5)
     bw_logger.info("seconds,bw")
+
+    # configure interface bandwidth
+    ifbw_log_url = os.path.join(Logs_Dir, "ifbw.cl.log")
+    with open(ifbw_log_url, 'w'):
+        pass
+    ifbw_logger = logging.getLogger('IFBW_Logger')
+    hdlr_4 = logging.FileHandler(ifbw_log_url)
+    ifbw_logger.setLevel(logging.INFO)
+    ifbw_logger.addHandler(hdlr_4)
+    ifbw_logger.info("seconds,bw")
 
     # configure FPS logger
     fps_log_url = os.path.join(Logs_Dir, "display.fps.log")
@@ -78,28 +87,25 @@ if __name__ == '__main__':
 
     # initiate & start processes
     manager = Manager()
-    rec_queue = manager.Queue(maxsize=10)
-    # psnr_queue = manager.Queue(maxsize=10)
+    rec_queue = manager.Queue(maxsize=1)
+    psnr_queue = manager.Queue(maxsize=1)
 
-    rlncdec = RLNCdecode.RLNCdecodeProcess(rec_queue, logger=perf_logger, latencylogger=latency_logger, bwlogger=bw_logger, plrlogger=plr_logger)
+    rlncdec = RLNCdecode.RLNCdecodeProcess(rec_queue, logger=perf_logger, latencylogger=latency_logger,
+                                           bwlogger=bw_logger, ifbw_logger=ifbw_logger, plrlogger=plr_logger)
     print('*********************** Client & FEC Mode ********************************')
     rlncdec.start()
 
     reportingClient = RTTProbingClient.RTTProbingClient()
     reportingClient.start()
 
-    vp8dec = VP8decode.VP8decodeProcess(rec_queue, logger=perf_logger, event_logger=event_logger)
+    vp8dec = VP8decode.VP8decodeProcess(rec_queue, psnr_queue, logger=perf_logger)
     vp8dec.start()
 
-    # display = Display.DisplayProcess(psnr_queue)
-    # display.start()
-
-    # Support user to keyboad interaction
-    # user_key_it = user_interaction.UserKeyInteraction(event_logger=event_logger)
-    # user_key_it.user_key_interaction()
+    display = Display.DisplayProcess(psnr_queue, logger=perf_logger)
+    display.start()
 
     #join processes
     rlncdec.join()
     reportingClient.join()
     vp8dec.join()
-    # display.join()
+    display.join()

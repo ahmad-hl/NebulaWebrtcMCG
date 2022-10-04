@@ -1,5 +1,5 @@
 from multiprocessing import Manager
-from nebula import RLNCdecode, VP8decode, Display, PSNRcompute
+from nebula import RLNCdecode, VP8decode, Display
 from RTTProbing import RTTProbingClient
 import logging, sys, signal, os
 
@@ -107,4 +107,4 @@ if __name__ == '__main__':
     rlncdec.join()
     reportingClient.join()
     vp8dec.join()
-    # display.join()
+    display.join()

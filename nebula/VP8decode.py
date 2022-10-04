@@ -6,7 +6,6 @@ from util.wrapper import Decoder, VPXFRAMEDATA
 from messages.vp8dec_display_data import VP8Dec2DisplayData
 import cv2, os
 from util import PreTxUtility
-from messages.MTPpacket import MTPpacket
 from util.initializer import initialize_setting
 
 class VP8decodeProcess(Process):
