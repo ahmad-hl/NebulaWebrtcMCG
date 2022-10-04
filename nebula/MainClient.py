@@ -2,8 +2,6 @@ from multiprocessing import Manager
 from nebula import RLNCdecode, VP8decode, Display, PSNRcompute
 from RTTProbing import RTTProbingClient
 import logging, sys, signal, os
-from udponly import UDPreceiver
-from tcp import TCPreceiver
 from util import user_interaction
 
 if __name__ == '__main__':

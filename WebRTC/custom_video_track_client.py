@@ -55,8 +55,8 @@ class CustomVideoTrackRTClient(MediaStreamTrack):
             framepsnr = cv2.PSNR(original, compressed_frame)
             # cv2.imshow('original', original)
             # self.show_user_event( compressed_frame, vp8_disp_data)
-            cv2.imshow('compressed', compressed_frame)
-            cv2.waitKey(1)
+            # cv2.imshow('compressed', compressed_frame)
+            # cv2.waitKey(1)
         else:
             framepsnr = 1
 

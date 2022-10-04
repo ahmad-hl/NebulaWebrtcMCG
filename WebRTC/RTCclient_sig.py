@@ -1,11 +1,9 @@
-import argparse, asyncio, logging, time, cv2, os, socket, json
+import argparse, asyncio, logging, time, os, socket, struct, b64coder
 from custom_video_track_client import CustomVideoTrackRTClient
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
 from aiortc.contrib.signaling import BYE, add_signaling_arguments, create_signaling
 from aiortc import RTCIceCandidate, MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 from multiprocessing import Manager
-import b64coder
-import struct
 from util.initializer import initialize_setting
 
 pcs = set()
@@ -165,13 +163,15 @@ if __name__ == "__main__":
 
     # init TCP socket to the client
     settings = initialize_setting()
-    if args.server_port:
-        server_port = args.server_port
-    else:
-        server_port = 9999
+    # if args.server_port:
+    #     server_port = args.server_port
+    # else:
+    #     server_port = 9999
+    server_port = 9999
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((settings.server_ip, server_port))
+    print("server ip and port: {} - {}".format(settings.server_ip, server_port))
 
     manager = Manager()
     events_queue = manager.Queue(maxsize=1)

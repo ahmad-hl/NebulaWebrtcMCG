@@ -90,11 +90,11 @@ class DisplayProcess(Process):
             obj = self.in_queue.get()
             vp8_disp_data = pickle.loads(obj)
 
-            if self.DEBUG:
-                itemstart = time.time()
-                if time.time() - start > 1:
-                    start = time.time()
-                    second += 1
+            # if self.DEBUG:
+            itemstart = time.time()
+            if time.time() - start > 1:
+                start = time.time()
+                second += 1
 
             rescaled_frame = self.rescale_frame(vp8_disp_data.frame,vp8_disp_data.frame_no)
             framepsnr = self.computePSNR(vp8_disp_data.frame_no, rescaled_frame, curr_frame_ptr, vp8_disp_data)
@@ -105,17 +105,17 @@ class DisplayProcess(Process):
 
             curr_frame_ptr = vp8_disp_data.frame_no + 1
             self.show_user_event(rescaled_frame, vp8_disp_data)
-            cv2.imshow('rescaled_frame', rescaled_frame)
-            key = cv2.waitKey(1) & 0xFF
-
-            # if the q key was pressed, break from the loop
-            if key == ord("q"):
-                cv2.destroyAllWindows()
-                break
-
-            if vp8_disp_data.frame_no >= 1799:
-                cv2.destroyAllWindows()
-                break
+            # cv2.imshow('rescaled_frame', rescaled_frame)
+            # key = cv2.waitKey(1) & 0xFF
+            #
+            # # if the q key was pressed, break from the loop
+            # if key == ord("q"):
+            #     cv2.destroyAllWindows()
+            #     break
+            #
+            # if vp8_disp_data.frame_no >= 1799:
+            #     cv2.destroyAllWindows()
+            #     break
 
             if self.DEBUG:
                 req_time = (time.time() - itemstart) * 1000
