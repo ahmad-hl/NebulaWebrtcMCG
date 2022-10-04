@@ -41,8 +41,8 @@ class RLNCencodeOffProcess(Process):
         if frame_no % 10 == 0:
 
             # Tune source rate
-            ruleRTT = max(currRTT, 0.3)
-            ruleRTT = 1- min(ruleRTT, 0.6)
+            ruleRTT = max(currRTT, 0.4)
+            ruleRTT = 1- min(ruleRTT, 0.7)
 
             print("currRTT = {}, ruleRTT = {}".format(currRTT, ruleRTT))
             for ind in range(readers_len):
@@ -208,9 +208,8 @@ class ClientParamsReceiverThread(threading.Thread):
 #Motion-to-photon receiving Thread
 class MTPReceiverThread(threading.Thread):
 
-    def __init__(self, mtp_queue, MTPlogger = None):
+    def __init__(self, MTPlogger = None):
         super(MTPReceiverThread, self).__init__()
-        self.mtp_queue = mtp_queue
         self.MTPlogger = MTPlogger
 
         args = initialize_setting()
@@ -220,7 +219,6 @@ class MTPReceiverThread(threading.Thread):
         print('Established server MTP socket {} , {} ..'.format(args.server_ip, args.server_mtp_port))
 
     def run(self):
-        start = time.time()
         mtp_list = []
 
         while True:
@@ -235,7 +233,3 @@ class MTPReceiverThread(threading.Thread):
             if self.MTPlogger:
                 self.MTPlogger.info("{}, {}, {}, {}".format(seconds, mtpPacket.frame_no, mtp, mtpPacket.psnr))
             print("motion-to-photon latency {} and psnr {} of frame {}".format(mtp * 1000, mtpPacket.psnr, mtpPacket.frame_no))
-
-            if time.time() - start > 1:
-                # Compute mean mtp latency & put to queue
-                self.mtp_queue.put(np.mean(mtp_list))

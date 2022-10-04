@@ -1,7 +1,9 @@
-import cv2, time, pickle
+import cv2, time, pickle, socket, sys
 from multiprocessing import Process
 import os, csv,shutil
 from util import PreTxUtility
+from util.initializer import initialize_setting
+from messages.MTPpacket import MTPpacket
 from messages.vp8dec_display_data import VP8Dec2DisplayData
 
 class DisplayProcess(Process):
@@ -9,7 +11,11 @@ class DisplayProcess(Process):
         super(DisplayProcess, self).__init__()
         self.in_queue = in_queue
 
-        self.DEBUG = 0
+        args = initialize_setting()
+        # Init server address and socket for acknowledging frame delivery
+        self.address = (args.server_ip, args.server_mtp_port)
+        self.mtp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
         if logger:
             self.logger = logger
         if fpslogger:
@@ -40,6 +46,13 @@ class DisplayProcess(Process):
 
         return framepsnr
 
+
+    def __send(self, socket, message, address):
+        # Convert str message to bytes on Python 3+
+        if sys.version_info[0] > 2 and isinstance(message, str):
+            message = bytes(message, 'utf-8')
+
+        socket.sendto(message, address)
 
     def rescale_frame(self, frame, frame_no, percent=100):
         width = 1920 #int(frame.shape[1] * percent / 100)
@@ -90,7 +103,6 @@ class DisplayProcess(Process):
             obj = self.in_queue.get()
             vp8_disp_data = pickle.loads(obj)
 
-            # if self.DEBUG:
             itemstart = time.time()
             if time.time() - start > 1:
                 start = time.time()
@@ -99,6 +111,12 @@ class DisplayProcess(Process):
             rescaled_frame = self.rescale_frame(vp8_disp_data.frame,vp8_disp_data.frame_no)
             framepsnr = self.computePSNR(vp8_disp_data.frame_no, rescaled_frame, curr_frame_ptr, vp8_disp_data)
             print("PSNR of frame {}: {}".format(vp8_disp_data.frame_no, framepsnr))
+
+            # Send an MTP latency response packet upon frame rendering (display/playback) at client
+            mtpPacket = MTPpacket(vp8_disp_data.frame_no, vp8_disp_data.sent_ts, framepsnr)
+            obj = pickle.dumps(mtpPacket)
+            self.__send(self.mtp_socket, obj, self.address)
+
             # log frame_no, PSNR
             self.log_psnr_file.write(str(vp8_disp_data.frame_no) + '\t' + str(framepsnr) + '\n')
             self.log_psnr_file.flush()
@@ -117,10 +135,9 @@ class DisplayProcess(Process):
             #     cv2.destroyAllWindows()
             #     break
 
-            if self.DEBUG:
-                req_time = (time.time() - itemstart) * 1000
-                self.logger.info("display, {}, {}".format(vp8_disp_data.frame_no, req_time))
-                self.fpslogger.info("{},{},{}".format(second, vp8_disp_data.frame_no, req_time))
+            req_time = (time.time() - itemstart) * 1000
+            self.logger.info("display, {}, {}".format(vp8_disp_data.frame_no, req_time))
+            self.fpslogger.info("{},{},{}".format(second, vp8_disp_data.frame_no, req_time))
 
 
 

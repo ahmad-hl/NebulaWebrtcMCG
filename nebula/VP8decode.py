@@ -97,7 +97,7 @@ class VP8decodeProcess(Process):
                                 #Scale and display frame
                                 # print("frame {} is received, event {}".format(rlnc_vp8_data.frame_no, rlnc_vp8_data.event))
                                 rescaled_frame = self.rescale_frame(frame)
-                                vp8_disp_data = VP8Dec2DisplayData(rlnc_vp8_data.frame_no, rescaled_frame)
+                                vp8_disp_data = VP8Dec2DisplayData(rlnc_vp8_data.frame_no, frame, rlnc_vp8_data.frame_sent_ts)
                                 obj = pickle.dumps(vp8_disp_data)
                                 self.out_queue.put(obj)
                                 # self.show_user_event(rescaled_frame, rlnc_vp8_data)
