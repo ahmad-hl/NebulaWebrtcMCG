@@ -55,6 +55,18 @@ if __name__ == '__main__':
     rtt_logger.info("seconds,ts,rtt")
 
 
+    # configure motion-to-photon logger
+    mtp_log_url = os.path.join(Logs_Dir, "mtp.sr.log")
+    with open(mtp_log_url, 'w'):
+        pass
+
+    mtp_logger = logging.getLogger('MTP_Logger')
+    hdlr_5 = logging.FileHandler(mtp_log_url)
+    mtp_logger.setLevel(logging.INFO)
+    mtp_logger.addHandler(hdlr_5)
+    mtp_logger.info("station,frame_no,ts,psnr")
+
+
     signal_raised = False
     def signal_handler(signal, frame):
         global signal_raised
@@ -63,14 +75,12 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal_handler)
     dim = [0, 0, 1920, 1080] #1280,720
     # PreTxUtility.start_openarena(IS_FULLHD=True)
-    # print(dim)
 
     #For Inter-process communication
     manager = Manager()
     in_queue = manager.Queue(maxsize=1)
     out_queue = manager.Queue(maxsize=1)
     rtt_queue = manager.Queue(maxsize=3)
-    user_event_queue = manager.Queue(maxsize=3)
 
     # Start Capture & VP8 and RLNC encode processes
     screenshot = Screenshot.ScreenShotProcess(in_queue,dim, logger=perf_logger)
@@ -82,7 +92,7 @@ if __name__ == '__main__':
     repServer = RTTProbingServer.RTTProbingServer(rtt_queue, rtt_logger)
     repServer.start()
 
-    rlncenc = RLNCencode.RLNCencodeProcess(out_queue, user_event_queue, logger=perf_logger, Overheadlogger=overhead_logger)
+    rlncenc = RLNCencode.RLNCencodeProcess(out_queue, logger=perf_logger, MTPlogger=mtp_logger, Overheadlogger=overhead_logger)
     print('*********************** Capture & FEC Mode ********************************')
     rlncenc.start()
 

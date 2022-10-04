@@ -18,12 +18,10 @@ class VP8encodeProcess(Process):
         self.out_queue = out_queue
         self.rtt_queue = rtt_queue
         self.sync_ack_queue = Queue(maxsize=1)
-        self.DEBUG = 1
         if logger:
             self.logger = logger
 
         self.GoP_len = 10
-        self.NetworkMonitor = 1
         self.last_throughput = 6000
         self.last_plr = 0
         self.last_rtt = 0.1
@@ -34,14 +32,15 @@ class VP8encodeProcess(Process):
 
     def tune_sending_bitrate(self, rtt, throughput, bitrates, redundancyRate):
         bitrates_len = len(bitrates)
+
+        # if rtt>=1:
+        #     ruleRTT = 0.8
+        # else:
+        #     ruleRTT = rtt
+
         # Tune source rate
-        # rtt = rtt + 0.1
-        # ruleRTT = min(rtt, 0.5)
-        # ruleRTT = 1- min(ruleRTT, 0.9)
-        if rtt>=1:
-            ruleRTT = 0.8
-        else:
-            ruleRTT = rtt
+        ruleRTT = max(rtt, 0.5)
+        ruleRTT = 1 - min(ruleRTT, 0.8)
 
 
         print("currRTT = {:.3f}, ruleRTT = {}, Mu = {:.3f}".format(rtt, ruleRTT, throughput))
@@ -96,9 +95,8 @@ class VP8encodeProcess(Process):
     def run(self):
 
         # Thread to receive ACK on frame delivery completion from client
-        if self.NetworkMonitor == 1:
-            clParamsThrd = ClientParamsReceiverThread(self.sync_ack_queue, args=self.args)
-            clParamsThrd.start()
+        clParamsThrd = ClientParamsReceiverThread(self.sync_ack_queue, args=self.args)
+        clParamsThrd.start()
 
         start_time = time.time()
         start = time.time()
@@ -114,7 +112,6 @@ class VP8encodeProcess(Process):
         print(" initialize vp8 encoder:{}".format((time.time() - start_time)*1000))
 
         while True:
-
             #Get & load image
             obj = self.in_queue.get()
 
@@ -158,10 +155,9 @@ class VP8encodeProcess(Process):
                     pass
 
 
-                if self.DEBUG:
-                    req_time = (time.time()  - itemstart) *1000
-                    self.logger.info("vp8enc, {}, {}".format(scrn_vp8enc_data.frame_no , req_time))
-                    print("VP8 enc: frame {}, time {}".format(scrn_vp8enc_data.frame_no, req_time))
+                req_time = (time.time()  - itemstart) *1000
+                self.logger.info("vp8enc, {}, {}".format(scrn_vp8enc_data.frame_no , req_time))
+                print("VP8 enc: frame {}, time {}".format(scrn_vp8enc_data.frame_no, req_time))
 
 
             # Get network conditions (RTT, Mu, loss)

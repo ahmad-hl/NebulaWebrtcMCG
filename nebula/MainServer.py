@@ -78,9 +78,8 @@ if __name__ == '__main__':
     repServer = RTTProbingServer.RTTProbingServer(rtt_queue, rtt_logger)
     repServer.start()
 
-    rlncenc = RLNCencodeOff.RLNCencodeOffProcess(rtt_queue, user_event_queue, logger=perf_logger, MTPlogger=mtp_logger, BWlogger=bw_logger)
+    rlncenc = RLNCencodeOff.RLNCencodeOffProcess(rtt_queue, logger=perf_logger, MTPlogger=mtp_logger, BWlogger=bw_logger)
     print('*********************** FEC Nebula Mode ********************************')
-
     rlncenc.start()
 
     rlncenc.join()

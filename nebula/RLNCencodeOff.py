@@ -14,14 +14,13 @@ from statistics import mean
 
 #ffmpeg -i output.mkv -c:v libvpx -r 30 -s hd1080 -b:v 10000k  output.mp4
 class RLNCencodeOffProcess(Process):
-    def __init__(self, rtt_queue, user_event_queue,  logger=None, MTPlogger = None, BWlogger = None, is_localhost=False):
+    def __init__(self, rtt_queue, logger=None, MTPlogger = None, BWlogger = None, is_localhost=False):
         super(RLNCencodeOffProcess, self).__init__()
         self.args = initialize_setting()
 
         self.snderSock = SenderSock(is_localhost)
 
         self.rtt_queue = rtt_queue
-        self.user_event_queue = user_event_queue
 
         # *** Performance Logging ****
         if logger:
@@ -115,7 +114,6 @@ class RLNCencodeOffProcess(Process):
 
             # compute symbols based on frame and symbol_size
             data_in = bytearray(frame.framedata)
-
             symbols = float(len(data_in)) / symbol_size
             symbols = int(math.ceil(symbols))
 
