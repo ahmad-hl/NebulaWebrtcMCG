@@ -1,4 +1,5 @@
-import math, time, datetime
+import math, time
+from datetime import datetime
 import numpy as np
 from multiprocessing import Process
 from queue import Queue
@@ -10,35 +11,31 @@ import kodo
 import threading, socket
 import pickle
 from statistics import mean
-from util.user_events_receiver import UserEventsReceiverThread
 
 #ffmpeg -i output.mkv -c:v libvpx -r 30 -s hd1080 -b:v 10000k  output.mp4
 class RLNCencodeOffProcess(Process):
-    def __init__(self, rtt_queue, user_event_queue,  logger=None, Overheadlogger=None, BWlogger = None, is_localhost=False):
+    def __init__(self, rtt_queue, user_event_queue,  logger=None, MTPlogger = None, BWlogger = None, is_localhost=False):
         super(RLNCencodeOffProcess, self).__init__()
         self.args = initialize_setting()
 
         self.snderSock = SenderSock(is_localhost)
 
-        self.DEBUG = 1
         self.rtt_queue = rtt_queue
         self.user_event_queue = user_event_queue
 
+        # *** Performance Logging ****
         if logger:
             self.logger = logger
-        if Overheadlogger:
-            self.Overheadlogger = Overheadlogger
-
+        if MTPlogger:
+            self.MTPlogger = MTPlogger
         if BWlogger:
             self.BWlogger = BWlogger
 
-        self.NetworkMonitor = 1
-        if self.NetworkMonitor == 1:
-            self.sync_ack_queue = Queue(maxsize=1)
+        self.sync_ack_queue = Queue(maxsize=1)
         self.bw_list = []
 
 
-    def parameter_tune(self, frame_no, qlevel, currRTT, bw, readers, bitrates, redundancyRate,redundancyRate_errorprop):
+    def parameter_tune(self, frame_no, qlevel, currRTT, bw, readers, bitrates):
         readers_len = len(readers)
 
         if frame_no % 10 == 0:
@@ -65,31 +62,25 @@ class RLNCencodeOffProcess(Process):
 
     def run(self):
 
-        # Thread to receive ACK on frame delivery completion from client
-        if self.NetworkMonitor == 1:
-            clParamsThrd = ClientParamsReceiverThread(self.sync_ack_queue)
-            clParamsThrd.start()
+        # Thread to receive Performance parameters from client
+        clParamsThrd = ClientParamsReceiverThread(self.sync_ack_queue)
+        clParamsThrd.start()
 
-            userThrd = UserEventsReceiverThread(self.user_event_queue)
-            userThrd.start()
-
+        # MTP latency Receiver and Compute Thread
+        self.mtppReceiverThread = MTPReceiverThread(self.MTPlogger)
+        self.mtppReceiverThread.daemon = True
+        self.mtppReceiverThread.start()
 
         start = time.time()
-        clientPLR = 0
         rttList = [0.05]
-        now = datetime.datetime.now()
+        now = datetime.now()
         second_no = int('%i%i' % (now.minute, now.second))
         frame_no = 0
         fps = 30
-        event = ''
 
         readers, bitrates = PreTxUtility.get_readers()
         qualityLevel = 8
         clientBw = 200000 #bitrates[qualityLevel]
-        redundantPkts = 0
-        redundantPkts_errorprop = 0
-        redundancyRate = 0
-        redundancyRate_errorprop = 0
         numframes = readers[0].nFrames
 
         symbol_size = self.args.symbol_size
@@ -112,18 +103,14 @@ class RLNCencodeOffProcess(Process):
 
 
             #read and dump
-            frame,qualityLevel,sourceRate = self.parameter_tune(frame_no, qualityLevel,currRTT, clientBw, readers, bitrates, redundancyRate, redundancyRate_errorprop)
+            frame,qualityLevel,sourceRate = self.parameter_tune(frame_no, qualityLevel,currRTT, clientBw, readers, bitrates)
             # frame = reader.get_next_frame()
-            if self.DEBUG:
-                itemstart = time.time()
-                if time.time() - start > 1:
-                    start = time.time()
-                    now = datetime.datetime.now()
-                    second_no = int('%i%i' % (now.minute, now.second))
-                    redundancyRate = redundantPkts * symbol_size * 8/1024
-                    redundantPkts = 0
-                    redundancyRate_errorprop = redundantPkts_errorprop * symbol_size * 8/1024
-                    redundantPkts_errorprop = 0
+
+            itemstart = time.time()
+            if time.time() - start > 1:
+                start = time.time()
+                now = datetime.now()
+                second_no = int('%i%i' % (now.minute, now.second))
 
 
             # compute symbols based on frame and symbol_size
@@ -141,53 +128,40 @@ class RLNCencodeOffProcess(Process):
 
             packet_number = 0
 
-            # to enable AFEC, uncomment the following 2 lines
-            # total_packets = max(symbols + 1, math.ceil(symbols * (1 + clientPLR))) # math.ceil(0.3 * (10- (frame_no%10)) *clientPLR))
-            redundantPkts = redundantPkts + max(1, math.ceil(symbols * clientPLR))
-            redundantPkts_errorprop = redundantPkts_errorprop + max(1, math.ceil(
-                symbols * 0.3 * (10 - frame_no % 10) * clientPLR))
-            # total_packets = symbols #No FEC
-            total_packets = max(symbols + 1, 0) #math.ceil(symbols * (1 + clientPLR))
+            # No FEC
+            total_packets = symbols
+            # total_packets = max(symbols + 1, 0) #math.ceil(symbols * (1 + clientPLR))
 
-            # check if client network parameters are received
-            if self.NetworkMonitor == 1:
-                # Get user events
-                try:
-                    event_b = self.user_event_queue.get_nowait()
-                    event = event_b.decode('utf-8')
-                except Exception as ex:
-                    event = ''
-                    pass
 
-                # Get network parameters
-                try:
-                    netparams = self.sync_ack_queue.get_nowait()
-                    if netparams.plr == netparams.plr:
-                        clientPLR = netparams.plr  # np.max(clientPLRlist)
+            # Get network parameters from client
+            try:
+                netparams = self.sync_ack_queue.get_nowait()
+                if netparams.plr == netparams.plr:
+                    clientPLR = netparams.plr  # np.max(clientPLRlist)
 
-                    if netparams.bw == netparams.bw:
-                        clientBw = netparams.bw  # PreTxUtility.average_bw_list(min(netparams.bw, 8000))  # np.mean(clientBWlist) - np.std(clientBWlist)
+                if netparams.bw == netparams.bw:
+                    clientBw = netparams.bw  # PreTxUtility.average_bw_list(min(netparams.bw, 8000))  # np.mean(clientBWlist) - np.std(clientBWlist)
 
-                except Exception:
-                    pass
+            except Exception:
+                pass
 
             while packet_number < total_packets:
                 packet_number += 1
                 packet = encoder.produce_payload()
                 curr_timestamp = time.time()
-                frtpPkt = FRTPpacket(packet_number, frame_no, symbols,event, curr_timestamp, payload=packet)
+                frtpPkt = FRTPpacket(packet_number, frame_no, symbols, curr_timestamp, payload=packet)
                 self.snderSock.sendFRTPpacket(frtpPkt)
 
-            if self.DEBUG:
-                req_time = (time.time() - itemstart) * 1000
-                # process rlnc encode, frame number, time (ms)
-                self.logger.info("rlncenc, {}, {}".format(frame_no, req_time))
+            time_end = time.time()
+            req_time = (time_end - itemstart) * 1000
+            # process rlnc encode, frame number, time (ms)
+            self.logger.info("rlncenc, {}, {}".format(frame_no, req_time))
+            # station, frame no, timestamp
+            self.MTPlogger.info("send, {}, {}".format(frame_no, time_end ))
 
-                # second no, n , k, PLR
-                seconds = math.ceil(time.mktime(datetime.datetime.today().timetuple()))
-                self.Overheadlogger.info("{}, {}, {}, {}, {}, {}".format(second_no,frame_no,seconds, packet_number, symbols, clientPLR))
-                if sourceRate:
-                    self.BWlogger.info("{}, {}, {}, {}, {}, {}, {}, {}, {}".format(second_no, frame_no, seconds, clientBw, sourceRate,1 ,redundancyRate, packet_number-symbols, redundancyRate_errorprop))
+            seconds = math.ceil(time.mktime(datetime.today().timetuple()))
+            if sourceRate:
+                self.BWlogger.info("{}, {}, {}, {}, {}".format(second_no, frame_no, seconds, clientBw, sourceRate))
 
             frame_no += 1
 
@@ -231,4 +205,37 @@ class ClientParamsReceiverThread(threading.Thread):
                 print('exceptiopn')
                 pass
 
+#Motion-to-photon receiving Thread
+class MTPReceiverThread(threading.Thread):
 
+    def __init__(self, mtp_queue, MTPlogger = None):
+        super(MTPReceiverThread, self).__init__()
+        self.mtp_queue = mtp_queue
+        self.MTPlogger = MTPlogger
+
+        args = initialize_setting()
+        self.mtp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.mtp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.mtp_socket.bind((args.server_ip, args.server_mtp_port))
+        print('Established server MTP socket {} , {} ..'.format(args.server_ip, args.server_mtp_port))
+
+    def run(self):
+        start = time.time()
+        mtp_list = []
+
+        while True:
+            # Receive an frame MTP latency response packet
+            obj, address = self.mtp_socket.recvfrom(1024)
+            mtpPacket = pickle.loads(obj)
+
+            # compute the difference as mtp
+            mtp = time.time() - mtpPacket.sent_ts
+            mtp_list.append(mtp)
+            seconds = math.ceil(time.mktime(datetime.today().timetuple()))
+            if self.MTPlogger:
+                self.MTPlogger.info("{}, {}, {}, {}".format(seconds, mtpPacket.frame_no, mtp, mtpPacket.psnr))
+            print("motion-to-photon latency {} and psnr {} of frame {}".format(mtp * 1000, mtpPacket.psnr, mtpPacket.frame_no))
+
+            if time.time() - start > 1:
+                # Compute mean mtp latency & put to queue
+                self.mtp_queue.put(np.mean(mtp_list))

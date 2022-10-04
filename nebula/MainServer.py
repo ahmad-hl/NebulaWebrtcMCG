@@ -20,6 +20,17 @@ if __name__ == '__main__':
     perf_logger.addHandler(hdlr_1)
     perf_logger.info("process,frame_no,time")
 
+    # configure motion-to-photon logger
+    mtp_log_url = os.path.join(Logs_Dir, "mtp.sr.log")
+    with open(mtp_log_url, 'w'):
+        pass
+
+    mtp_logger = logging.getLogger('MTP_Logger')
+    hdlr_5 = logging.FileHandler(mtp_log_url)
+    mtp_logger.setLevel(logging.INFO)
+    mtp_logger.addHandler(hdlr_1)
+    mtp_logger.info("station,frame_no,ts")
+
     # configure overhead logger for throughput/goodput
     overhead_log_url = os.path.join(Logs_Dir, "overhead.sr.log")
     with open(overhead_log_url, 'w'):
@@ -67,7 +78,7 @@ if __name__ == '__main__':
     repServer = RTTProbingServer.RTTProbingServer(rtt_queue, rtt_logger)
     repServer.start()
 
-    rlncenc = RLNCencodeOff.RLNCencodeOffProcess(rtt_queue, user_event_queue, logger=perf_logger, Overheadlogger=overhead_logger, BWlogger=bw_logger)
+    rlncenc = RLNCencodeOff.RLNCencodeOffProcess(rtt_queue, user_event_queue, logger=perf_logger, MTPlogger=mtp_logger, BWlogger=bw_logger)
     print('*********************** FEC Nebula Mode ********************************')
 
     rlncenc.start()

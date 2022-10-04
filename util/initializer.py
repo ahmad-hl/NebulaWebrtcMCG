@@ -77,6 +77,12 @@ def initialize_setting():
         default=41012)
 
     parser.add_argument(
+        '--server-mtp-port',
+        type=int,
+        help='port used for user receiving mtp latency.',
+        default=41013)
+
+    parser.add_argument(
         '--symbols',
         type=int,
         help='number of symbols in each generation/block.',

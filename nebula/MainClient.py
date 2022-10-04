@@ -98,15 +98,15 @@ if __name__ == '__main__':
     reportingClient = RTTProbingClient.RTTProbingClient()
     reportingClient.start()
 
-    vp8dec = VP8decode.VP8decodeProcess(rec_queue, psnr_queue, logger=perf_logger, event_logger=event_logger)
+    vp8dec = VP8decode.VP8decodeProcess(rec_queue, psnr_queue, logger=perf_logger)
     vp8dec.start()
 
     display = Display.DisplayProcess(psnr_queue)
     display.start()
 
     # Support user to keyboad interaction
-    user_key_it = user_interaction.UserKeyInteraction(event_logger=event_logger)
-    user_key_it.user_key_interaction()
+    # user_key_it = user_interaction.UserKeyInteraction(event_logger=event_logger)
+    # user_key_it.user_key_interaction()
 
     #join processes
     rlncdec.join()

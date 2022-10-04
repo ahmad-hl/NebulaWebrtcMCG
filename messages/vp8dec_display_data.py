@@ -1,7 +1,6 @@
 class VP8Dec2DisplayData:
     def __init__(self, frame_no, event, frame):
         self.frame_no = frame_no
-        self.event = event
         self.frame = frame
 
     def __str__(self):

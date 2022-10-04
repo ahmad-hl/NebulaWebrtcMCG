@@ -19,12 +19,9 @@ class RLNCdecodeProcess(Process):
         self.rcvrSock = ReceiverSock(self.args )
 
         # Init server address and socket for acknowledging frame delivery
-        self.NetworkMonitor = 1
-        if self.NetworkMonitor == 1:
-            self.address = (self.args.server_ip, self.args.server_control_port)
-            self.ack_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.address = (self.args.server_ip, self.args.server_control_port)
+        self.ack_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        self.DEBUG = 1
         if logger:
             self.logger = logger
         if latencylogger:
@@ -122,17 +119,16 @@ class RLNCdecodeProcess(Process):
         return plr
 
     def compute_actual_plr(self, plrlist):
-        if self.NetworkMonitor == 1:
-            if plrlist:
-                try:
-                    actualplr = np.nanmean(plrlist)
-                    plrlist = []
-                    plrlist.append(actualplr)
-                    print("PLR:{:.5f}".format(actualplr))
-                except:
-                    actualplr = 0
-            else:
+        if plrlist:
+            try:
+                actualplr = np.nanmean(plrlist)
+                plrlist = []
+                plrlist.append(actualplr)
+                print("PLR:{:.5f}".format(actualplr))
+            except:
                 actualplr = 0
+        else:
+            actualplr = 0
 
         return actualplr
 
@@ -176,7 +172,7 @@ class RLNCdecodeProcess(Process):
                 self.delete_lower_frames(received_frames, frame_packet_delays, gap)
 
                 if is_complete_frame:
-                    rlnc_vp8_data = RLNC2VP8DecData(frtpPacket.frame_no, frtpPacket.event, data_out)
+                    rlnc_vp8_data = RLNC2VP8DecData(frtpPacket.frame_no, data_out)
                     obj = pickle.dumps(rlnc_vp8_data)
                     # DO NOT Refresh queue (to avoid distortion)
                     self.out_queue.put(obj)
@@ -241,7 +237,6 @@ class RLNCdecodeProcess(Process):
 
                 #NOT complete frame
                 else:
-
                     # update throughput
                     prev_frame_no = frtpPacket.frame_no
                     byteReceived = byteReceived + datasize

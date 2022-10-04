@@ -97,17 +97,16 @@ class VP8decodeProcess(Process):
                                 #Scale and display frame
                                 # print("frame {} is received, event {}".format(rlnc_vp8_data.frame_no, rlnc_vp8_data.event))
                                 rescaled_frame = self.rescale_frame(frame)
-                                vp8_disp_data = VP8Dec2DisplayData(rlnc_vp8_data.frame_no, rlnc_vp8_data.event,
-                                                                   rescaled_frame)
+                                vp8_disp_data = VP8Dec2DisplayData(rlnc_vp8_data.frame_no, rescaled_frame)
                                 obj = pickle.dumps(vp8_disp_data)
                                 self.out_queue.put(obj)
                                 # self.show_user_event(rescaled_frame, rlnc_vp8_data)
                                 # cv2.imshow('scaled_frame', rescaled_frame)
                                 # cv2.waitKey(1)
 
-                                if rlnc_vp8_data.event != '':  # in ['up', 'down', 'lef', 'right']:
-                                    ts = time.time()
-                                    self.event_logger.info("recv,{},{}".format(rlnc_vp8_data.event, ts))
+                                # if rlnc_vp8_data.event != '':  # in ['up', 'down', 'lef', 'right']:
+                                #     ts = time.time()
+                                #     self.event_logger.info("recv,{},{}".format(rlnc_vp8_data.event, ts))
 
                             dec.free_data(fr)
                             #log frame encoding time

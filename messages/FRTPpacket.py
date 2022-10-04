@@ -2,11 +2,10 @@
 # FEC-enabled RTP - FRTP packet
 
 class FRTPpacket:
-    def __init__(self, seq_no, frame_no, symbols, event, timestamp=None, payload=None):
+    def __init__(self, seq_no, frame_no, symbols, timestamp=None, payload=None):
         self.seq_no = seq_no
         self.frame_no = frame_no
         self.symbols = symbols
-        self.event = event
         self.timestamp = timestamp
         self.payload = payload
 
@@ -17,14 +16,14 @@ class FRTPpacket:
         self.timestamp = timestamp
 
     def __str__(self):
-        obj_name = "Seq No:" + str(self.sequence_no)
+        obj_name = "Seq No:" + str(self.seq_no)
         obj_name += ", Frame No:" + str(self.frame_no)
         obj_name += ", symbols: " + str(self.symbols)
         obj_name += ", timestamp: " + str(self.timestamp)
         return obj_name
 
     def printPacket(self, prefix = " Packet Info::"):
-        obj_name = "Seq No:" + str(self.sequence_no)
+        obj_name = "Seq No:" + str(self.seq_no)
         obj_name += "Frame No:" + str(self.frame_no)
         obj_name += " , symbols: " + str(self.symbols)
         obj_name += ", timestamp: " + str(self.timestamp)
