@@ -27,9 +27,9 @@ class CustomVideoRTCServer(VideoStreamTrack):
             self.stream = CamGear(source=source, logging=True, **options).start()
 
         # open any valid video stream(for e.g `myvideo.avi` file)
-        elif source == 1:
+        elif (source != None) and (source == 1):
             self.stream = CamGear(source="../inout_data/hq4.mp4").start()
-
+            print('source is offline video: {}, url {}'.format(source,"../inout_data/hq4.mp4"))
         # YouTube Video URL as input source and enable Stream Mode (`stream_mode = True`)
         elif source == 2:
             options = {"STREAM_RESOLUTION": "1080p"}

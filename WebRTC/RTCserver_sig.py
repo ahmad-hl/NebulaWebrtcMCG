@@ -1,7 +1,4 @@
-import argparse, asyncio, logging, numpy, cv2
-import socket, time, json
-import b64coder
-import struct, os
+import argparse, asyncio, logging, socket, time,b64coder, struct, os
 
 from aiortc import (
     RTCIceCandidate,
@@ -182,6 +179,7 @@ if __name__ == "__main__":
     serversocket.listen(5)
 
     (client_socket, address) = serversocket.accept()
+    print("client socket: {} - {}".format(client_socket, address))
 
     # run event loop
     loop = asyncio.get_event_loop()
