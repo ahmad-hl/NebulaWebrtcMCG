@@ -1,89 +1,26 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 # import seaborn as sns
 vp8_encode_delay =  20.8
 
 #Motion to Photon
 def computeMTP_nebula(dir_names):
 
-    column_names = ['sentype', 'event', 'eventno', 'sentts','recvtype','recvts','motion2photon']
-    mtpDF =  pd.DataFrame(columns = column_names)
+    mtpDF = pd.DataFrame()
     for dir_name in dir_names:
         #Nebula Motion to Photon Calculation
-        eventsDF = pd.read_csv(dir_name+'/event.cl.log', sep=',')
-        sent_eventsDF = eventsDF.loc[eventsDF.type=='sent']
-        recv_eventsDF = eventsDF.loc[eventsDF.type=='recv']
-        recv_eventsDF = recv_eventsDF.drop(['event'], axis=1)
-
-        merged_eventsDF = pd.merge(sent_eventsDF, recv_eventsDF, on='eventno')
-        merged_eventsDF.columns = ['sentype', 'event', 'eventno', 'sentts','recvtype','recvts']
-        merged_eventsDF['motion2photon'] = merged_eventsDF.apply(lambda x: (x.recvts-x.sentts)*1000 + vp8_encode_delay , axis=1)
-        mtpDF = pd.concat([mtpDF,merged_eventsDF], ignore_index=True)
-
-    return mtpDF
-
-def computeMTP_tcp(dir_names):
-    # TCP (CUBIC) Motion to Photon Calculation
-    column_names = ['sentype', 'event', 'eventno', 'sentts', 'recvtype', 'recvts', 'motion2photon']
-    mtpDF = pd.DataFrame(columns=column_names)
-    for dir_name in dir_names:
-        # Nebula Motion to Photon Calculation
-        eventsDF = pd.read_csv(dir_name + '/event.tcp.cl.log', sep=',')
-        sent_eventsDF = eventsDF.loc[eventsDF.type == 'sent']
-        recv_eventsDF = eventsDF.loc[eventsDF.type == 'recv']
-        recv_eventsDF = recv_eventsDF.drop(['event'], axis=1)
-
-        merged_tcp_eventsDF = pd.merge(sent_eventsDF, recv_eventsDF, on='eventno')
-        merged_tcp_eventsDF.columns = ['sentype', 'event', 'eventno', 'sentts', 'recvtype', 'recvts']
-        merged_tcp_eventsDF['motion2photon'] = merged_tcp_eventsDF.apply(
-            lambda x: (x.recvts - x.sentts) * 1000 + vp8_encode_delay, axis=1)
-        mtpDF = pd.concat([mtpDF, merged_tcp_eventsDF], ignore_index=True)
-
-    return mtpDF
-
-def computeMTP_gop(dir_names):
-    #GoP-based (ESCOT) Motion to Photon Calculation
-    column_names = ['sentype', 'event', 'eventno', 'sentts', 'recvtype', 'recvts', 'motion2photon']
-    mtpDF = pd.DataFrame(columns=column_names)
-    for dir_name in dir_names:
-        # Nebula Motion to Photon Calculation
-        eventsDF = pd.read_csv(dir_name + '/event.gop.cl.log', sep=',')
-        sent_eventsDF = eventsDF.loc[eventsDF.type == 'sent']
-        recv_eventsDF = eventsDF.loc[eventsDF.type == 'recv']
-        recv_eventsDF = recv_eventsDF.drop(['event'], axis=1)
-
-        merged_gop_eventsDF = pd.merge(sent_eventsDF, recv_eventsDF, on='eventno')
-        merged_gop_eventsDF.columns = ['sentype', 'event', 'eventno', 'sentts', 'recvtype', 'recvts']
-        merged_gop_eventsDF['motion2photon'] = merged_gop_eventsDF.apply(
-            lambda x: (x.recvts - x.sentts) * 1000 + vp8_encode_delay, axis=1)
-        mtpDF = pd.concat([mtpDF, merged_gop_eventsDF], ignore_index=True)
-
-    return mtpDF
-
-def computeMTP_bo(dir_names):
-    #Buffer Occupancy Motion to Photon Calculation
-    column_names = ['sentype', 'event', 'eventno', 'sentts', 'recvtype', 'recvts', 'motion2photon']
-    mtpDF = pd.DataFrame(columns=column_names)
-    for dir_name in dir_names:
-        # Nebula Motion to Photon Calculation
-        eventsDF = pd.read_csv(dir_name + '/event.bo.cl.log', sep=',')
-        sent_eventsDF = eventsDF.loc[eventsDF.type == 'sent']
-        recv_eventsDF = eventsDF.loc[eventsDF.type == 'recv']
-        recv_eventsDF = recv_eventsDF.drop(['event'], axis=1)
-
-        merged_bo_eventsDF = pd.merge(sent_eventsDF, recv_eventsDF, on='eventno')
-        merged_bo_eventsDF.columns = ['sentype', 'event', 'eventno', 'sentts', 'recvtype', 'recvts']
-        merged_bo_eventsDF['motion2photon'] = merged_bo_eventsDF.apply(
-            lambda x: (x.recvts - x.sentts) * 1000 + vp8_encode_delay, axis=1)
-        mtpDF = pd.concat([mtpDF, merged_bo_eventsDF], ignore_index=True)
+        mtpDF = pd.read_csv(dir_name+'/mtp.sr.log', sep=',')
+        mtpDF['mtp'] = mtpDF['mtp'] * 1000
+        mtpDF.to_csv(dir_name + '/mtp.nebula.log', index=False)
+        print(mtpDF.head())
 
     return mtpDF
 
 def computeMTP_webRTC(dir_names):
     # WebRTC Client Display Delay
-    column_names = ['frame_no', 'rendrdelay', 'rendrts', 'dispdelay', 'dispts','motion2photon']
-    mtpDF = pd.DataFrame(columns=column_names)
+    mtpDF = pd.DataFrame()
     for dir_name in dir_names:
         display_rtcDF = pd.read_csv(dir_name+'/display.rtc.log', sep=',')
         display_rtcDF.drop(['timebase', 'pts'], axis=1, inplace=True)
@@ -93,8 +30,15 @@ def computeMTP_webRTC(dir_names):
 
         merged_rtcDF = pd.merge(render_rtcDF, display_rtcDF, on='frame_no')
         merged_rtcDF.columns = ['frame_no', 'rendrdelay', 'rendrts', 'dispdelay', 'dispts']
-        merged_rtcDF['motion2photon'] = merged_rtcDF.apply(lambda x: x.dispts - x.rendrts, axis=1)
+        merged_rtcDF['mtp'] = merged_rtcDF.apply(lambda x: x.dispts - x.rendrts, axis=1)
         mtpDF = pd.concat([mtpDF, merged_rtcDF], ignore_index=True)
+        #save to csv file
+        psnr_rtcDF = pd.read_csv(dir_name + '/webrtc_psnr.log', sep='\t')
+        print(psnr_rtcDF.head())
+        psnr_rtcDF.columns=['frame_no','psnr']
+        mtp_to_saveDF = pd.merge(mtpDF,psnr_rtcDF, on='frame_no')
+        mtp_to_saveDF = mtp_to_saveDF.drop(['rendrdelay', 'rendrts','dispdelay','dispts'], axis=1)
+        mtp_to_saveDF.to_csv(dir_name + '/mtp.rtc.log', index=False)
 
     return mtpDF
 
@@ -108,39 +52,6 @@ def computeRTT_nebula(dir_names):
         # Nebula Motion to Photon Calculation
         nebulaRTTDF = pd.read_csv(dir_name + '/rtt.sr.log', sep=',')
         rttDF = pd.concat([rttDF, nebulaRTTDF], ignore_index=True)
-
-    return rttDF
-
-def computeRTT_gop(dir_names):
-    # Nebula RTT
-    column_names = ['seconds', 'ts', 'rtt']
-    rttDF = pd.DataFrame(columns=column_names)
-    for dir_name in dir_names:
-        # Nebula Motion to Photon Calculation
-        gopRTTDF = pd.read_csv(dir_name + '/rtt.gop.sr.log', sep=',')
-        rttDF = pd.concat([rttDF, gopRTTDF], ignore_index=True)
-
-    return rttDF
-
-def computeRTT_bo(dir_names):
-    # BO RTT
-    column_names = ['seconds', 'ts', 'rtt']
-    rttDF = pd.DataFrame(columns=column_names)
-    for dir_name in dir_names:
-        # Nebula Motion to Photon Calculation
-        boRTTDF = pd.read_csv(dir_name + '/rtt.bo.sr.log', sep=',')
-        rttDF = pd.concat([rttDF, boRTTDF], ignore_index=True)
-
-    return rttDF
-
-def computeRTT_tcp(dir_names):
-    # TCP CUBIC RTT
-    column_names = ['seconds', 'ts', 'rtt']
-    rttDF = pd.DataFrame(columns=column_names)
-    for dir_name in dir_names:
-        # Nebula Motion to Photon Calculation
-        tcpRTTDF = pd.read_csv(dir_name + '/rtt.tcp.sr.log', sep=',')
-        rttDF = pd.concat([rttDF, tcpRTTDF], ignore_index=True)
 
     return rttDF
 
@@ -158,65 +69,47 @@ def computeRTT_rtc(dir_names):
 
 
 #Experiments directories
-experiments_dir_names = ['wifidata5','wifidata6','wifidata7','wifidata8','wifidata11','wifidata12']
-exper_mtp_dir_names_rtc = ['wifidata7','wifidata8','wifidata11','wifidata12']
-exper_rtt_dir_names_rtc = ['wifidata11','wifidata12']
+experiments_dir_names = ['wifi.perf.1']
 
 #Round Trip Time statsitics
 nebulaRTTDF = computeRTT_nebula(experiments_dir_names)
-tcpRTTDF = computeRTT_tcp(experiments_dir_names)
-gopRTTDF = computeRTT_gop(experiments_dir_names)
-boRTTDF = computeRTT_bo(experiments_dir_names)
-rtcRTTDF = computeRTT_rtc(exper_rtt_dir_names_rtc)
+stats_rtt_nebula = nebulaRTTDF['rtt'].agg(['mean', 'count', 'std'])
+m, c, s = stats_rtt_nebula.values
+stats_rtt_nebula['ci95'] = 1.96*s/math.sqrt(c)
 
-stats_rtt_nebula = nebulaRTTDF.describe()
-stats_rtt_tcp = tcpRTTDF.describe()
-stats_rtt_gop = gopRTTDF.describe()
-stats_rtt_bo = boRTTDF.describe()
-stats_rtt_rtc = rtcRTTDF.describe()
-
-rttMeans = (stats_rtt_nebula['rtt']['mean'],stats_rtt_tcp['rtt']['mean'],stats_rtt_gop['rtt']['mean'],
-           stats_rtt_bo['rtt']['mean'],stats_rtt_rtc['delay']['mean'])
-
-rttStds = (stats_rtt_nebula['rtt']['std'],stats_rtt_tcp['rtt']['std'],stats_rtt_gop['rtt']['std'],
-           stats_rtt_bo['rtt']['std'],stats_rtt_rtc['delay']['std'])
-
+rtcRTTDF = computeRTT_rtc(experiments_dir_names)
+stats_rtt_webrtc = nebulaRTTDF['rtt'].agg(['mean', 'count', 'std'])
+m, c, s = stats_rtt_webrtc.values
+stats_rtt_webrtc['ci95'] = 1.96*s/math.sqrt(c)
 
 #Motion to Photon statsitics
-merged_eventsDF = computeMTP_nebula(experiments_dir_names)
-merged_tcpeventsDF = computeMTP_tcp(experiments_dir_names)
-merged_gopeventsDF = computeMTP_gop(experiments_dir_names)
-merged_boeventsDF = computeMTP_bo(experiments_dir_names)
-merged_rtcDF = computeMTP_webRTC(exper_mtp_dir_names_rtc)
+nebulaMTPDF = computeMTP_nebula(experiments_dir_names)
+stats_mtp_nebula = nebulaMTPDF['mtp'].agg(['mean', 'count', 'std'])
+m, c, s = stats_mtp_nebula.values
+stats_mtp_nebula['ci95'] = 1.96*s/math.sqrt(c)
 
-stats_nebulaDF = merged_eventsDF.describe()
-stats_tcpDF = merged_tcpeventsDF.describe()
-stats_gopDF = merged_gopeventsDF.describe()
-stats_boDF = merged_boeventsDF.describe()
-stats_rtcDF = merged_rtcDF.describe()
+rtcMTPDF = computeMTP_webRTC(experiments_dir_names)
+stats_mtp_webrtc = rtcMTPDF['mtp'].agg(['mean', 'count', 'std'])
+m, c, s = stats_mtp_webrtc.values
+stats_mtp_webrtc['ci95'] = 1.96*s/math.sqrt(c)
 
+rttMeans = (stats_rtt_nebula['mean'],stats_rtt_webrtc['mean'])
+rttCIs = (stats_rtt_nebula['ci95'],stats_rtt_webrtc['ci95'])
+mtpMeans = (stats_mtp_nebula['mean'],stats_mtp_webrtc['mean'])
+mtpCIs = (stats_mtp_nebula['ci95'],stats_mtp_webrtc['ci95'])
 
-mtpMeans = (stats_nebulaDF['motion2photon']['mean'],stats_tcpDF['motion2photon']['mean'],stats_gopDF['motion2photon']['mean'],
-           stats_boDF['motion2photon']['mean'],stats_rtcDF['motion2photon']['mean'])
-
-mtpStds = (stats_nebulaDF['motion2photon']['std'],stats_tcpDF['motion2photon']['std'],stats_gopDF['motion2photon']['std'],
-           stats_boDF['motion2photon']['std'],stats_rtcDF['motion2photon']['std'])
-
-print(mtpStds)
 # Plot figure
-ind = ['Nebula', 'TcpCubic', 'ESCOT', 'BO', 'WebRTC']
+ind = ['Nebula', 'WebRTC']
 width = 0.4  # the width of the bars: can also be len(x) sequence
 
 # fig, (ax1, ax2) = plt.subplots(2, sharex=True)
 fig = plt.figure(figsize=(16, 8))
 ax = fig.add_subplot(111)
 # color='skyblue': indianred, dodgerblue, turquoise, mediumseagreen, lightgreen
-lowersmtp = np.minimum(mtpStds, mtpMeans)
-lowersrtt = np.minimum(rttStds, rttMeans)
-p1 = ax.bar(ind, mtpMeans, width, yerr=[lowersmtp, mtpStds], log=False, capsize=3,
+p1 = ax.bar(ind, mtpMeans, width, yerr=mtpCIs, log=False, capsize=3,
              color='dodgerblue', error_kw=dict(elinewidth=2, ecolor='black'))
-p2 = ax.bar(ind, rttMeans, width, yerr=[lowersrtt, rttStds], log=False, capsize=3,
-             color='indianred',error_kw=dict(elinewidth=2, ecolor='brown'))
+# p2 = ax.bar(ind, rttMeans, width, yerr=rttCIs, log=False, capsize=3,
+#              color='indianred',error_kw=dict(elinewidth=2, ecolor='brown'))
 
 plt.margins(0.01, 0)
 
@@ -236,9 +129,8 @@ ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 plt.tick_params(axis="y", labelsize=20, labelcolor="black")
 plt.tick_params(axis="x", labelsize=20, labelcolor="black")
-plt.ylabel('Round Trip Time (ms)', fontsize=20)
 plt.title('Eduroam WiFi', fontsize=20)
-plt.ylabel('RTT/Motion to Photon (ms)', fontsize=20)
+plt.ylabel('Motion to Photon (ms)', fontsize=20)
 
 # plt.savefig('mtp_rtt_wifi.png', bbox_inches='tight')
 # fig.savefig('mtp_rtt_wifi.eps', format='eps',bbox_inches='tight')

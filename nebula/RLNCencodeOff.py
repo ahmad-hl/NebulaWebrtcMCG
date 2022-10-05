@@ -154,8 +154,6 @@ class RLNCencodeOffProcess(Process):
             req_time = (time_end - itemstart) * 1000
             # process rlnc encode, frame number, time (ms)
             self.logger.info("rlncenc, {}, {}".format(frame_no, req_time))
-            # station, frame no, timestamp
-            self.MTPlogger.info("server, {}, {}".format(frame_no, time_end ))
 
             seconds = math.ceil(time.mktime(datetime.today().timetuple()))
             if sourceRate:
@@ -221,8 +219,8 @@ class MTPReceiverThread(threading.Thread):
             # Receive an frame MTP latency response packet
             obj, address = self.mtp_socket.recvfrom(1024)
             mtpPacket = pickle.loads(obj)
-
+            mtp = time.time() - mtpPacket.sent_ts
             # compute the difference as mtp
             if self.MTPlogger:
-                self.MTPlogger.info("{}, {}, {}, {}".format('client', mtpPacket.frame_no, mtpPacket.sent_ts, mtpPacket.psnr))
+                self.MTPlogger.info("{}, {}, {}".format(mtpPacket.frame_no, mtp, mtpPacket.psnr))
             print("sent time {} and psnr {} of frame {}".format(mtpPacket.sent_ts, mtpPacket.psnr, mtpPacket.frame_no))
